@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /index.php?page=admin
+Disallow: /index.php?ajax=
+Disallow: /?ajax=
+Disallow: /?page=admin
+
+# Sitemap location — update domain before uploading
+Sitemap: https://yourdomain.com/sitemap.php
