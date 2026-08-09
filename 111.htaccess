@@ -1,0 +1,115 @@
+# ============================================================
+# Prize Bond PK — Apache .htaccess
+# Upload this file alongside index.php in public_html/
+# ============================================================
+
+# ── Prevent directory listing ────────────────────────────────
+Options -Indexes
+
+# ── Charset ──────────────────────────────────────────────────
+AddDefaultCharset UTF-8
+
+# ── Security Headers ─────────────────────────────────────────
+<IfModule mod_headers.c>
+    # Prevent clickjacking
+    Header always set X-Frame-Options "SAMEORIGIN"
+    # Prevent MIME sniffing
+    Header always set X-Content-Type-Options "nosniff"
+    # XSS Protection (legacy browsers)
+    Header always set X-XSS-Protection "1; mode=block"
+    # Referrer policy
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    # Remove server signature
+    Header always unset X-Powered-By
+    Header always unset Server
+    # Permissions policy
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+</IfModule>
+
+# ── GZIP Compression ─────────────────────────────────────────
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css
+    AddOutputFilterByType DEFLATE text/javascript application/javascript
+    AddOutputFilterByType DEFLATE application/json application/xml
+    AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+# ── Browser Caching ───────────────────────────────────────────
+<IfModule mod_expires.c>
+    ExpiresActive On
+    # HTML — short cache (results change)
+    ExpiresByType text/html                  "access plus 10 minutes"
+    # CSS, JS — longer cache
+    ExpiresByType text/css                   "access plus 1 month"
+    ExpiresByType application/javascript     "access plus 1 month"
+    # Images
+    ExpiresByType image/png                  "access plus 6 months"
+    ExpiresByType image/jpeg                 "access plus 6 months"
+    ExpiresByType image/gif                  "access plus 6 months"
+    ExpiresByType image/webp                 "access plus 6 months"
+    ExpiresByType image/svg+xml              "access plus 1 month"
+    ExpiresByType image/x-icon              "access plus 1 year"
+    # Fonts
+    ExpiresByType font/woff2                 "access plus 1 year"
+    ExpiresByType font/woff                  "access plus 1 year"
+</IfModule>
+
+# ── Cache-Control Headers ─────────────────────────────────────
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js|woff2?|ttf|eot|otf)$">
+        Header set Cache-Control "public, max-age=2592000, immutable"
+    </FilesMatch>
+    <FilesMatch "\.(jpg|jpeg|png|gif|webp|ico|svg)$">
+        Header set Cache-Control "public, max-age=15552000"
+    </FilesMatch>
+    <FilesMatch "\.php$">
+        Header set Cache-Control "no-store, no-cache, must-revalidate"
+    </FilesMatch>
+</IfModule>
+
+# ── Block Common Attack Patterns ─────────────────────────────
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Block SQL injection patterns in query strings
+    RewriteCond %{QUERY_STRING} (union.*select|insert.*into|drop.*table|delete.*from) [NC,OR]
+    RewriteCond %{QUERY_STRING} (select.*from|load_file|outfile) [NC,OR]
+    RewriteCond %{QUERY_STRING} (\.\./|\.\.\\) [NC,OR]
+    RewriteCond %{QUERY_STRING} (<script|javascript:|vbscript:) [NC]
+    RewriteRule .* - [F,L]
+
+    # Block common exploit scanners
+    RewriteCond %{HTTP_USER_AGENT} (nikto|sqlmap|nmap|masscan|zgrab|wget|curl/7) [NC,OR]
+    RewriteCond %{HTTP_USER_AGENT} (scrapy|python-requests|go-http-client|libwww-perl) [NC]
+    RewriteRule .* - [F,L]
+
+    # Redirect non-www to www (uncomment and edit if needed)
+    # RewriteCond %{HTTP_HOST} !^www\. [NC]
+    # RewriteRule ^ https://www.%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+    # Force HTTPS (uncomment once SSL is configured)
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+</IfModule>
+
+# ── Protect sensitive files ───────────────────────────────────
+<FilesMatch "^(\.env|\.git|composer\.json|composer\.lock|package\.json|README\.txt|schema\.sql)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# ── Disable PHP error display in production ───────────────────
+php_flag  display_errors        off
+php_flag  display_startup_errors off
+php_value error_reporting        0
+
+# ── Session security ──────────────────────────────────────────
+php_value session.cookie_httponly  1
+php_value session.cookie_samesite  Strict
+php_flag  session.use_only_cookies 1
+
+# ── Upload limit (adjust for your host) ──────────────────────
+php_value upload_max_filesize  10M
+php_value post_max_size        12M
+php_value max_execution_time   60
+php_value memory_limit         128M
